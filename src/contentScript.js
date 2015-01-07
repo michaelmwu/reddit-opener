@@ -1,63 +1,54 @@
-var jquery_set_links;
-var jquery_set_comments;
+function getLinks(comments) {
+	if(typeof(comments)==='undefined') comments = true;
 
-function fakeClick(obj) {
-	var evObj = document.createEvent('MouseEvents');
-	evObj.initEvent('mousedown', true, true);
-	obj.dispatchEvent(evObj);
+	var data = Array();
+
+	var ele = document;
+	var entries = ele.querySelectorAll('#siteTable .entry, #siteTable_organic .entry');
+	for (var i = 0, len = entries.length; i < len; i++) {
+		if (typeof entries[i] !== 'undefined') {
+			var thisLA = entries[i].querySelector('A.title');
+			if (thisLA !== null) {
+				var thisLink = thisLA.href;
+				var thisUL = entries[i].querySelector('ul.flat-list');
+
+				if (typeof thisLink == 'undefined') {
+					continue;
+				}
+
+				data.push(thisLink);
+
+				if (comments) {
+					var thisComments = (thisComments = entries[i].querySelector('.comments')) && thisComments.innerHTML != "comment" && thisComments.href;
+					if(thisComments && thisComments != thisLink) {
+						data.push(thisComments);
+					}
+				}
+			}
+		}
+	}
+
+	return data;
 }
 
-function isNSFW(url){
-	var nsfw_arr = $("#siteTable .even .nsfw-stamp, #siteTable .odd .nsfw-stamp");
-	
-	for (var i=0; i < nsfw_arr.length; i++) {
-	  if (url.parentNode.parentNode == nsfw_arr[i].parentNode.parentNode){
-	  	return true;
-	  }	  
-	};
-	
-	return false;
-}
-
-chrome.extension.onRequest.addListener(function(request, sender, callback) {
+chrome.runtime.onMessage.addListener(function(request, sender, callback) {
 	switch (request.action) {
 		case 'openRedditLinks':
-			jquery_set_links = $("#siteTable a.title:visible");
-			jquery_set_comments = $("#siteTable a.comments:visible");
-
-			var data = Array();
-
-			var i;
-			for( i = 0; i < jquery_set_links.length; i++) {
-				data.push(new Array(jquery_set_links[i].text, jquery_set_links[i].href, jquery_set_comments[i].href, isNSFW(jquery_set_links[i])));
-			}
+			var data = getLinks(false);
 
 			if(data.length > 0) {
 				callback({
-					urls : data,
-					tabid : request.tabid
+					urls: data
 				});
 			}
 			break;
 
-		case 'openNextPage':
-			window.location = $('.nextprev a[rel~="next"]').attr("href");
-			break;
+		case 'openRedditLinksComments':
+			var data = getLinks(true);
 
-		case 'scrapeInfoCompanionBar':
-			fakeClick(jquery_set_links[request.index]);
-			break;
-
-		case 'updateSettings':
-			if(request.keyboardshortcut != request.oldkeyboardshortcut) {
-				if(request.oldkeyboardshortcut) {
-					shortcut.remove(request.oldkeyboardshortcut);
-				}
-
-				shortcut.add(request.keyboardshortcut, function() {
-					chrome.extension.sendRequest({
-						action : "keyboardShortcut"
-					});
+			if(data.length > 0) {
+				callback({
+					urls: data
 				});
 			}
 			break;
@@ -65,8 +56,4 @@ chrome.extension.onRequest.addListener(function(request, sender, callback) {
 		default:
 			break;
 	}
-});
-
-chrome.extension.sendRequest({
-	action : "initKeyboardShortcut"
 });
