@@ -10,25 +10,20 @@
 function openUrls(urls) {
 	for(var i = 0; i <= urls.length; i++) {
 		var targetUrl = urls[i];
-		console.log("url " + targetUrl);
 
-		chrome.tabs.create({
-						url: targetUrl,
-						selected : false
-					});
-
-		continue;
+		(function(url) {
 		chrome.history.getVisits({
-	 		url: targetUrl
+	 		url: url
 			}, function(visitItems) {
 				if(visitItems.length == 0) {
 					chrome.tabs.create({
-						url: targetUrl,
-						selected : false
+						url: url,
+						selected: false
 					});
 				}
 			}
 		);
+		})(targetUrl);
 	}
 }
 
